@@ -1,0 +1,42 @@
+service: serverless-aws-demo
+
+frameworkVersion: ">=1.0.0 <2.0.0"
+
+custom:
+  stage: ${opt:stage, 'dev'}
+  config: ${file(./configs/${self:custom.stage}.yml)}
+  projectName: serverless-aws-demo
+
+provider:
+  name: aws
+  runtime: python2.7
+  profile: demo-aws-profile
+  region: eu-central-1
+  memorySize: 128
+  timeout: 10
+  tags:
+    project: ${self:custom.projectName}
+  usagePlan:
+    quota:
+      limit: 5000
+      offset: 2
+      period: MONTH
+    throttle:
+      burstLimit: 200
+      rateLimit: 100
+  apiKeys:
+    - ${self:custom.stage}-${self:custom.projectName}
+  endpointType: ${self:custom.config.endpointType}
+  environment:
+    PROJECT_NAME: ${self:custom.projectName}
+
+functions:
+  example:
+    handler: function/handler.handle
+    events:
+      - http:
+          path: /example
+          method: get
+          private: true
+    environment:
+      STAGE_NAME: ${self:custom.stage}

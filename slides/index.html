@@ -1,0 +1,486 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+  <title>Serverless on AWS</title>
+
+
+  <link rel="stylesheet" href="css/reveal.css">
+  <link rel="stylesheet" href="style/custom-theme.css" id="theme">
+
+  <!-- Theme used for syntax highlighting of code -->
+  <link rel="stylesheet" href="lib/css/zenburn.css">
+
+  <!-- Printing and PDF exports -->
+  <script>
+    var link = document.createElement('link');
+    link.rel = 'stylesheet';
+    link.type = 'text/css';
+    link.href = window.location.search.match(/print-pdf/gi) ? 'css/print/pdf.css' : 'css/print/paper.css';
+    document.getElementsByTagName('head')[0].appendChild(link);
+  </script>
+</head>
+<body>
+<div class="reveal">
+  <div class="slides">
+    <section>
+      <h1>Serverless on AWS</h1>
+      <img style="border: none;" src="../img/serverless-logo.png" height="150">
+    </section>
+    <section>
+      <section>
+        <h2>Serverless</h2>
+        <b>The Serverless Framework</b> is an open-source CLI for building and deploying serverless applications.
+      </section>
+      <section>
+        <h3>Infrastructure As Code</h3>
+        <ul>
+          <li>With the Serverless Framework you can define your entire Serverless application, utlizing popular Serverless technologies like AWS Lambda, with a simple yaml configuration file.</li>
+        </ul>
+      </section>
+      <section>
+        <h3>Simple Serverless Development</h3>
+        <ul>
+          <li>The Serverless Framework provides a simple, intuitive CLI experience that makes it easy to develop and deploy applications to cloud platforms like AWS, Microsoft Azure, Google Cloud Platform, IBM OpenWhisk, and more.</li>
+        </ul>
+      </section>
+      <section>
+        <h3>Provider Agnostic</h3>
+        <ul>
+          <li>The Serverless Framework is open source and provider agnostic, meaning you only need one tool to tap in to the power of all the cloud providers.</li>
+        </ul>
+      </section>
+    </section>
+    <section>
+      <!-- Services -->
+      <section>
+        <h2>Basic concepts</h2>
+        <b>Services</b> - a service is like a project. It's where you define your AWS Lambda Functions, the <b>events</b> that trigger them and any AWS infrastructure <b>resources</b> they require, all in a file called serverless.yml
+      </section>
+      <section>
+        <h4>Services (creation)</h4>
+        To create a service, use the <b>create</b> command. You must also pass in a runtime (e.g., node.js, python etc.) you would like to write the service in. You can also pass in a path to create a directory and auto-name your service:
+        <pre class="bash">
+          <code data-trim>
+            # Create service with nodeJS template in the folder ./myService
+serverless create --template aws-nodejs --path myService
+          </code>
+        </pre>
+      </section>
+      <section>
+        <h4>Services (contents)</h4>
+        Each <b>service</b> configuration is managed in the <b>serverless.yml</b>.
+        The main responsibilities of this file are:
+        <ul>
+          <li>declare a Serverless service</li>
+          <li>define one or more functions in the service</li>
+          <li>define the provider the service will be deployed to (and the runtime if provided)</li>
+          <li>define any custom plugins to be used</li>
+        </ul>
+      </section>
+      <section>
+        <h4>Services (contents)</h4>
+        <ul>
+          <li>define events that trigger each function to execute (e.g. HTTP requests)</li>
+          <li>define a set of resources (e.g. 1 DynamoDB table) required by the functions in this service</li>
+          <li>allow events listed in the events section to automatically create the resources required for the event upon deployment</li>
+          <li>allow flexible configuration using Serverless Variables</li>
+        </ul>
+      </section>
+      <section>
+        <h4>Services (contents)</h4>
+        Example serverless.yml file:
+        <pre class="yml">
+          <code data-trim>
+# serverless.yml
+
+service: users
+provider:
+  name: aws
+  runtime: nodejs6.10
+  stage: dev # Set the default stage used. Default is dev
+  region: us-east-1 # Overwrite the default region used. Default is us-east-1
+  profile: production # The default profile to use with this service
+  memorySize: 512 # Overwrite the default memory size. Default is 1024
+  deploymentBucket:
+    # Overwrite the default deployment bucket
+    name: com.serverless.${self:provider.region}.deploys
+    serverSideEncryption: AES256 # when using server-side encryption
+  versionFunctions: false # Optional function versioning
+  stackTags: # Optional CF stack tags
+   key: value
+
+functions:
+  usersCreate: # A Function
+    handler: users.create
+    events: # The Events that trigger this Function
+      - http: post users/create
+  usersDelete: # A Function
+    handler: users.delete
+    events:  # The Events that trigger this Function
+      - http: delete users/delete
+          </code>
+        </pre>
+      </section>
+      <section>
+        <h4>Services (deployment)</h4>
+        When you deploy a Service, all of the Functions, Events and Resources in your serverless.yml are translated to an AWS CloudFormation template and deployed as a single CloudFormation stack.
+        To deploy a service use <b>deploy</b> command:
+        <pre class="bash">
+          <code data-trim>
+            serverless deploy
+          </code>
+        </pre>
+      </section>
+      <section>
+        <h4>Services (deployment)</h4>
+        Deployment defaults to <b>dev</b> stage and <b>us-east-1</b> region on AWS, unless you specified these elsewhere, or add them in as options:
+        <pre class="bash">
+          <code data-trim>
+            serverless deploy --stage prod --region us-east-1
+          </code>
+        </pre>
+      </section>
+      <section>
+        <h4>Services (removal)</h4>
+        To easily remove your Service from your AWS account, you can use the <b>remove</b> command. Serverless will start the removal and informs you about it's process on the console. A success message is printed once the whole service is removed.
+        <pre class="bash">
+          <code data-trim>
+            serverless remove -v
+          </code>
+        </pre>
+      </section>
+    </section>
+    <section>
+      <!-- Functions -->
+      <section>
+        <h2>Basic concepts</h2>
+        <b>Functions</b> - If you are using AWS as a provider, all functions inside the service are AWS Lambda functions. All of the Lambda functions in your serverless service can be found in serverless.yml under the functions property.
+      </section>
+      <section>
+        <h4>Functions (configuration)</h4>
+        <pre class="yml">
+          <code data-trim>
+# serverless.yml
+
+service: myService
+
+provider:
+  name: aws
+  runtime: nodejs6.10
+  memorySize: 512 # optional, in MB, default is 1024
+  timeout: 10 # optional, in seconds, default is 6
+  versionFunctions: false # optional, default is true
+
+functions:
+  hello:
+    handler: handler.hello # required, handler set in AWS Lambda
+    name: ${self:provider.stage}-lambdaName # optional, Deployed Lambda name
+    # optional, Description to publish to AWS
+    description: Description of what the lambda function does
+    runtime: python2.7 # optional overwrite, default is provider runtime
+    memorySize: 512 # optional, in MB, default is 1024
+    timeout: 10 # optional, in seconds, default is 6
+    # optional, reserved concurrency limit for this function.
+    reservedConcurrency: 5
+          </code>
+        </pre>
+      </section>
+      <section>
+        <h4>Functions (configuration)</h4>
+        The <b>handler</b> property points to the file and module containing the code you want to run in your function.
+        <pre class="javascript">
+          <code data-trim>
+// handler.js
+module.exports.functionOne = function(event, context, callback) {}
+          </code>
+        </pre>
+      </section>
+      <section>
+        <h4>Functions (permissions)</h4>
+        Every AWS Lambda function needs permission to interact with other AWS infrastructure resources within your account. You can set permission policy statements within this role via the <b>provider.iamRoleStatements</b> property.
+        <pre class="yml">
+          <code data-trim>
+# serverless.yml
+
+service: myService
+
+provider:
+  name: aws
+  runtime: nodejs6.10
+  iamRoleStatements: # permissions for all of your functions can be set here
+    - Effect: Allow
+      Action: # Gives permission to DynamoDB tables in a specific region
+        - dynamodb:DescribeTable
+        - dynamodb:Query
+        - dynamodb:Scan
+        - dynamodb:GetItem
+        - dynamodb:PutItem
+        - dynamodb:UpdateItem
+        - dynamodb:DeleteItem
+      Resource: "arn:aws:dynamodb:us-east-1:*:*"
+  functions:
+    functionOne:
+      handler: handler.functionOne
+      memorySize: 512
+          </code>
+        </pre>
+      </section>
+      <section>
+        <h4>Functions (environment variables)</h4>
+        You can add environment variable configuration to a specific function in serverless.yml by adding an <b>environment</b> object property in the function/provider configuration. This object should contain a key-value pairs of string to string
+        <pre class="yml">
+          <code data-trim>
+# serverless.yml
+
+service: service-name
+
+provider:
+  name: aws
+  environment:
+    SYSTEM_NAME: mySystem
+    TABLE_NAME: tableName1
+
+functions:
+  hello:
+    handler: handler.hello
+    environment:
+      TABLE_NAME: tableName2
+          </code>
+        </pre>
+      </section>
+      <section>
+        <h4>Functions (tags)</h4>
+        Using the <b>tags</b> configuration makes it possible to add key / value tags to your functions.
+
+        Those tags will appear in your AWS console and make it easier for you to group functions by tag or find functions with a common tag.
+        <pre class="yml">
+          <code data-trim>
+# serverless.yml
+
+functions:
+  hello:
+    handler: handler.hello
+    tags:
+      env: prod
+          </code>
+        </pre>
+      </section>
+    </section>
+    <section>
+      <!-- Events -->
+      <section>
+        <h2>Basic concepts</h2>
+        <b>Events</b> - events are the things that trigger your functions to run.
+
+        If you are using AWS as your provider, all <b>events</b> in the service are anything in AWS that can trigger an AWS Lambda function, like an S3 bucket upload, an SNS topic, and HTTP endpoints created via API Gateway.
+      </section>
+      <section>
+        <h4>Events (configuration)</h4>
+        <ul>
+          <li>Events belong to each Function and can be found in the events property in serverless.yml.</li>
+          <li>Events are objects, which can contain event-specific information.</li>
+          <li>The events property is an array, because it's possible for functions to be triggered by multiple events, as shown.</li>
+          <li>You can set multiple Events per Function, as long as that is supported by AWS.</li>
+        </ul>
+      </section>
+      <section>
+        <h4>Events (configuration)</h4>
+        <pre class="yml">
+          <code data-trim>
+# serverless.yml
+
+functions:
+  createUser: # Function name
+    handler: handler.users # Reference to file handler.js & exported function 'users'
+    events: # All events associated with this function
+      - http:
+          path: users/create
+          method: post
+      - http:
+          path: users/update
+          method: put
+      - http:
+          path: users/delete
+          method: delete
+          </code>
+        </pre>
+      </section>
+      <section>
+        <h4>Events (types)</h4>
+        The Serverless Framework supports all of the AWS Lambda events and more.
+        see: <a href="https://serverless.com/framework/docs/providers/aws/events/">https://serverless.com/framework/docs/providers/aws/events/</a>
+      </section>
+    </section>
+    <section>
+      <!-- Resources -->
+      <section>
+        <h2>Basic concepts</h2>
+        <b>Resources</b> - if you are using AWS as a provider for your Service, all Resources are other AWS infrastructure resources which the AWS Lambda functions in your Service depend on, like AWS DynamoDB or AWS S3.
+        Using the Serverless Framework, you can define the infrastructure resources you need in serverless.yml, and easily deploy them.
+      </section>
+      <section>
+        <h4>Resources (configuration)</h4>
+        Every stage you deploy to with serverless.yml using the <b>aws</b> provider is a single AWS CloudFormation stack. This is where your AWS Lambda functions and their event configurations are defined and it's how they are deployed. When you add resources those resources are added into your CloudFormation stack upon serverless deploy.
+      </section>
+      <section>
+        <h4>Resources (configuration)</h4>
+        Define your AWS resources in a property titled <b>resources</b>. What goes in this property is raw CloudFormation template syntax, in YAML, like this:
+        <pre class="yml">
+          <code data-trim>
+# serverless.yml
+
+service: usersCrud
+provider: aws
+functions:
+
+resources:  # CloudFormation template syntax
+  Resources:
+    usersTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: usersTable
+        AttributeDefinitions:
+          - AttributeName: email
+            AttributeType: S
+        KeySchema:
+          - AttributeName: email
+            KeyType: HASH
+        ProvisionedThroughput:
+          ReadCapacityUnits: 1
+          WriteCapacityUnits: 1
+          </code>
+        </pre>
+      </section>
+      <section>
+        <h4>Resources (configuration)</h4>
+        You can overwrite/attach any kind of resource to your CloudFormation stack. You can add <b>Resources</b>, <b>Outputs</b> or even overwrite the <b>Description</b>. You can also use Serverless Variables for sensitive data or reusable configuration in your resources templates. Please be cautious as overwriting existing parts of your CloudFormation stack might introduce unexpected behavior
+      </section>
+    </section>
+    <section>
+      <!-- Plugins -->
+      <section>
+        <h2>Basic concepts</h2>
+        <b>Plugins</b> - a Plugin is custom Javascript code that creates new or extends existing commands within the Serverless Framework. The Serverless Framework is merely a group of Plugins that are provided in the core.
+      </section>
+      <section>
+        <h4>Plugins (installation and use)</h4>
+        External Plugins are added on a per service basis and are not applied globally. Make sure you are in your Service's root directory, then install the corresponding Plugin with the help of NPM:
+        <pre class="bash">
+          <code data-trim>
+            npm install --save custom-serverless-plugin
+          </code>
+        </pre>
+      </section>
+      <section>
+        <h4>Plugins (installation and use)</h4>
+        We need to tell Serverless that we want to use the plugin inside our service. We do this by adding the name of the Plugin to the <b>plugins</b> section in the serverless.yml file.
+        <pre class="yml">
+          <code data-trim>
+# serverless.yml
+
+plugins:
+  - custom-serverless-plugin
+          </code>
+        </pre>
+      </section>
+    </section>
+    <section>
+      <section>
+        <!-- Appendix1 -->
+        <h2>Appendix: Lambda@Edge</h2>
+        <b>Lambda@Edge</b> lets you run Lambda functions to customize content that CloudFront delivers, executing the functions in AWS locations closer to the viewer.
+      </section>
+      <section>
+        <h4>Lambda@Edge (configuration)</h4>
+        You can use Lambda functions to change CloudFront requests and responses at the following points:
+        <ul>
+          <li>After CloudFront receives a request from a viewer (viewer request)</li>
+          <li>Before CloudFront forwards the request to the origin (origin request)</li>
+          <li>After CloudFront receives the response from the origin (origin response)</li>
+          <li>Before CloudFront forwards the response to the viewer (viewer response)</li>
+        </ul>
+      </section>
+      <section>
+        <h4>Lambda@Edge (configuration)</h4>
+        <img style="border: none;" src="../img/cloudfront-events.png" height="250">
+      </section>
+      <section>
+        <h4>Lambda@Edge (limitations)</h4>
+        <ul>
+          <li>You can add triggers only for a numbered version, not for $LATEST or for aliases.</li>
+          <li>You can add triggers only for functions in the US East (N. Virginia) Region.</li>
+          <li>You must create functions with the nodejs6.10 or nodejs8.10 runtime property.</li>
+          <li>Environment variables aren't supported.</li>
+          <li>Function timeout is 30 seconds for origin request and response events.</li>
+          <li>Function timeout is 5 seconds for viewer request and response events.</li>
+        </ul>
+      </section>
+      <section>
+        <h4>Lambda@Edge (plugin)</h4>
+        There is a plugin for Serverless framework that adds support for associating a Lambda function with a CloudFront distribution to take advantage of the Lambda@Edge features of CloudFront.
+        see: <a href="https://github.com/silvermine/serverless-plugin-cloudfront-lambda-edge">https://github.com/silvermine/serverless-plugin-cloudfront-lambda-edge</a>
+      </section>
+      <section>
+        <h4>Lambda@Edge (plugin)</h4>
+        <pre class="yml">
+          <code data-trim>
+# serverless.yml
+
+plugins:
+  - serverless-plugin-cloudfront-lambda-edge
+
+functions:
+   directoryRootOriginRequestRewriter:
+      name: 'static-site-origin-request'
+      handler: src/DirectoryRootOriginRequestRewriteHandler.handler
+      memorySize: 128
+      timeout: 1
+      lambdaAtEdge:
+         distribution: 'WebsiteDistribution'
+         eventType: 'origin-request'
+          </code>
+        </pre>
+      </section>
+    </section>
+    <section>
+      <!-- Demo -->
+      <h2>Demo</h2>
+    </section>
+    <section>
+      <!-- Links -->
+      <h2>Links</h2>
+      <ul>
+        <li><a href="https://serverless.com/framework/docs/providers/aws/guide/intro/">Serverless AWS Guide</a></li>
+        <li><a href="https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/lambda-requirements-limits.html">Requirements and Restrictions on AWS Lambda Functions</a></li>
+        <li><a href="https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/cloudfront-limits.html#limits-lambda-at-edge">Limits on Lambda@Edge</a></li>
+      </ul>
+    </section>
+  </div>
+</div>
+
+<script src="lib/js/head.min.js"></script>
+<script src="js/reveal.js"></script>
+
+<script>
+  // More info https://github.com/hakimel/reveal.js#configuration
+  Reveal.initialize({
+    history: true,
+
+    // More info https://github.com/hakimel/reveal.js#dependencies
+    dependencies: [
+      {src: 'plugin/markdown/marked.js'},
+      {src: 'plugin/markdown/markdown.js'},
+      {src: 'plugin/notes/notes.js', async: true},
+      {
+        src: 'plugin/highlight/highlight.js', async: true, callback: function() {
+          hljs.initHighlightingOnLoad();
+        }
+      }
+    ]
+  });
+</script>
+</body>
+</html>
